@@ -33,6 +33,9 @@ with torch.no_grad():
 dummy_input1 = torch.randint(low=0, high=len(TOKENS) - 1, size=(1, 9))
 dummy_input2 = torch.randint(low=0, high=len(TOKENS) - 1, size=(1, 7))
 
+# dummy_input1 = torch.randint(1, 9)
+# dummy_input2 = torch.randint(1, 7)
+
 torch.onnx.export(
     model,
     (dummy_input1, dummy_input2),
@@ -48,25 +51,27 @@ torch.onnx.export(
 )
 
 # # Verify the ONNX model
-# import onnx
-# import onnxruntime
+import onnx
+import onnxruntime
 
-# onnx_model = onnx.load("model.onnx")
-# onnx.checker.check_model(onnx_model)
+onnx_model = onnx.load("model.onnx")
+onnx.checker.check_model(onnx_model)
 
-# ort_session = onnxruntime.InferenceSession("model.onnx")
+ort_session = onnxruntime.InferenceSession("model.onnx")
 
 
-# equation_tokens = equation_to_token_ids(equation, max_length=9).unsqueeze(0).numpy()
+equation_tokens = equation_to_token_ids(equation, max_length=9).unsqueeze(0)
 
-# answer_tokens = torch.LongTensor([[TOKENS.index('<BOS>')]]).numpy()
+answer_tokens = torch.LongTensor([[TOKENS.index('<BOS>'), TOKENS.index('1'), TOKENS.index('<BOS>'), TOKENS.index('<BOS>'), TOKENS.index('<BOS>'), TOKENS.index('<BOS>'), TOKENS.index('<BOS>')]])
 
-# onnx_input = {
-#     "context": dummy_input1.numpy(),
-#     "primary": dummy_input2.numpy(),
-# }
-# onnx_output = ort_session.run(None, onnx_input)
+onnx_input = {
+    "context": equation_tokens.numpy(),
+    "primary": answer_tokens.numpy(),
+}
+onnx_output = torch.tensor(ort_session.run(None, onnx_input))
 
-# print("ONNX Output: ", onnx_output)
+print(f"type(onnx_output): {type(onnx_output)}")
+print(f"onnx_output.shape: {onnx_output.shape}")
+print("ONNX Output: ", onnx_output)
 
 
