@@ -9,6 +9,21 @@ MIN_INT = -99
 MAX_INT = 99
 operations = ["+", "-", "*"]
 
+TOKENS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', ' ', '-', '+', '*', '<PAD>', '<BOS>', '<END>']
+
+def equation_to_token_ids(row, max_length: int, with_padding=True) -> torch.tensor:
+    token_ids = [TOKENS.index(c) for c in row[0]]
+    if with_padding:
+        token_ids += [TOKENS.index('<PAD>')] * (max_length - len(token_ids))
+    return torch.LongTensor(token_ids)
+
+def answer_to_token_ids(row, max_length: int, with_padding=True) -> torch.tensor:
+    token_ids = [TOKENS.index('<BOS>')] + [TOKENS.index(c) for c in row[0]]
+    if with_padding:
+        token_ids += [TOKENS.index('<PAD>')] * (max_length - len(token_ids) - 1)
+    token_ids += [TOKENS.index('<END>')]
+    return torch.LongTensor(token_ids)
+
 class MathData():
     def __init__(
         self,
@@ -28,7 +43,7 @@ class MathData():
 
         self.train_equations = train_equations
         self.train_answers = train_answers
-        self.test_equation = test_equations
+        self.test_equations = test_equations
         self.test_answers = test_answers
 
 class DataGenerator():
@@ -67,23 +82,8 @@ class DataGenerator():
         max_answer_length += 2  # For <BOS> and final <PAD> tokens
 
 
-        tokens = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', ' ', '-', '+', '*', '<PAD>', '<BOS>', '<END>']
-
-        def equation_to_token_ids(row, with_padding=True) -> torch.tensor:
-            token_ids = [tokens.index(c) for c in row[0]]
-            if with_padding:
-                token_ids += [tokens.index('<PAD>')] * (max_equation_length - len(token_ids))
-            return torch.LongTensor(token_ids)
-
-        def answer_to_token_ids(row, with_padding=True) -> torch.tensor:
-            token_ids = [tokens.index('<BOS>')] + [tokens.index(c) for c in row[0]]
-            if with_padding:
-                token_ids += [tokens.index('<PAD>')] * (max_answer_length - len(token_ids) - 1)
-            token_ids += [tokens.index('<END>')]
-            return torch.LongTensor(token_ids)
-
-        equation_tokens = torch.LongTensor(np.apply_along_axis(equation_to_token_ids, 1, np.expand_dims(equations, axis=1), with_padding=True))
-        answer_tokens = torch.LongTensor(np.apply_along_axis(answer_to_token_ids, 1, np.expand_dims(answers, axis=1), with_padding=True))
+        equation_tokens = torch.LongTensor(np.apply_along_axis(equation_to_token_ids, 1, np.expand_dims(equations, axis=1), max_length=max_equation_length, with_padding=True))
+        answer_tokens = torch.LongTensor(np.apply_along_axis(answer_to_token_ids, 1, np.expand_dims(answers, axis=1), max_length=max_answer_length, with_padding=True))
 
         split_idx = int(DATA_SIZE * 0.9)
         train_equations = equation_tokens[:split_idx]
@@ -92,7 +92,7 @@ class DataGenerator():
         train_answers = answer_tokens[:split_idx]
         test_answers = answer_tokens[split_idx:]
 
-        num_tokens = len(tokens)
+        num_tokens = len(TOKENS)
 
         if verbose:
             print(f"Equations: {len(equations)}")
@@ -103,12 +103,12 @@ class DataGenerator():
             print(equations[:10])
             print(answers[:10])
 
-            print(f"Tokens: {tokens}")
+            print(f"Tokens: {TOKENS}")
             print(f"Number of Tokens: {num_tokens}")
             print(f"Equation Tokens Shape: {equation_tokens.shape}")
             print(f"Example equation tokens: {equation_tokens[0:10]}")
             print(f"Answer Tokens Shape: {answer_tokens.shape}")
             print(f"Example answer tokens: {answer_tokens[0:10]}")
 
-        math_data = MathData(tokens, num_tokens, max_equation_length, max_answer_length, train_equations, train_answers, test_equations, test_answers)
+        math_data = MathData(TOKENS, num_tokens, max_equation_length, max_answer_length, train_equations, train_answers, test_equations, test_answers)
         return math_data

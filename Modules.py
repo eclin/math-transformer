@@ -125,7 +125,7 @@ class EDTransformer(nn.Module):
         self.max_context_length = max_context_length
         self.max_primary_length = max_primary_length
 
-        self.tokenizer = Tokenizer(max(max_context_length, max_primary_length), emb_dim)
+        self.tokenizer = Tokenizer(num_tokens, max(max_context_length, max_primary_length), emb_dim)
 
         # Encoder
         self.encoder_layer_mhattentions = nn.ModuleList([MHAttention(emb_dim, heads=heads) for _ in range(encoder_layers)])
